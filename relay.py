@@ -5,14 +5,14 @@ weron-signaler-python — pure Python WebSocket relay for weron VPN signaling.
 Uses aiohttp for HTTP + WebSocket on a single port.
 
 Usage:
+    python3 relay.py
+    python3 relay.py -i 0.0.0.0 -p 8788
     PORT=8788 HOST=0.0.0.0 python3 relay.py
 
-Environment variables:
-    PORT          Listening port           (default: 8788)
-    HOST          Listening host           (default: 0.0.0.0)
-    MAX_CLIENTS   Max concurrent clients   (default: 256)
+CLI arguments take precedence over environment variables.
 """
 
+import argparse
 import asyncio
 import json
 import logging
@@ -23,9 +23,27 @@ from collections import defaultdict
 from aiohttp import web, WSMsgType
 
 # ── Configuration ──────────────────────────────────────────────────
-PORT = int(os.environ.get("PORT", "8788"))
-HOST = os.environ.get("HOST", "0.0.0.0")
-MAX_CLIENTS = int(os.environ.get("MAX_CLIENTS", "256"))
+def _parse_args():
+    parser = argparse.ArgumentParser(
+        description="weron-signaler-python (aiohttp) — WebSocket relay"
+    )
+    parser.add_argument("-i", default=None, help="Listen address (env: HOST)")
+    parser.add_argument("-p", type=int, default=None, help="Listen port (env: PORT)")
+    parser.add_argument("-m", type=int, default=None, help="Max clients (env: MAX_CLIENTS)")
+    parser.add_argument("-V", "--version", action="store_true", help="Print version")
+    return parser.parse_args()
+
+
+_args = _parse_args()
+
+if _args.version:
+    print("weron-signaler-python 0.1.0")
+    import sys
+    sys.exit(0)
+
+PORT = _args.p if _args.p is not None else int(os.environ.get("PORT", "8788"))
+HOST = _args.i if _args.i is not None else os.environ.get("HOST", "0.0.0.0")
+MAX_CLIENTS = _args.m if _args.m is not None else int(os.environ.get("MAX_CLIENTS", "256"))
 
 # WebSocket paths accepted (compatible with CF Worker version)
 WS_PATHS = {"/", "/ws", "/signaler", "/room"}
